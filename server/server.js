@@ -54,26 +54,54 @@ app.post("/student/login", (req, res) => {
 });
 
 ///////////////////////////////////////////////
+//STUDENT/MESS SECTION
 
+app.get("/student/mess/:id", (req, res) => {
+  const { id } = req.params;
 
-app.get("/student/mess/:id",(req,res)=>{
-    const userId=req.params.id;
-    console.log(`Id: ${userId}`)
-
-    const sql = `
+  const sql = `
     SELECT m.*
-    FROM Student s
-    JOIN Mess_Menu m
-    ON s.hall_no = m.hall_no
+    FROM student s
+    JOIN mess_menu m
+      ON s.hall_no = m.hall_no
     WHERE s.reg_no = ?
-    AND m.week_day = DAYNAME(CURDATE())
+      AND m.week_day IN (
+        DAYNAME(CURDATE()),
+        DAYNAME(DATE_ADD(CURDATE(), INTERVAL 1 DAY))
+      )
+    ORDER BY
+      FIELD(
+        m.week_day,
+        DAYNAME(CURDATE()),
+        DAYNAME(DATE_ADD(CURDATE(), INTERVAL 1 DAY))
+      ),
+      FIELD(
+        m.meal,
+        'Breakfast',
+        'Lunch',
+        'Dinner'
+      );
   `;
 
-  db.query(sql,[userId],(err,result)=>{
-    if(err) return res.status(500).json(err)
+  db.query(sql, [id], (err, result) => {
+    if (err) {
+      console.log(err);
+      return res.status(500).json({
+        success: false,
+        error: err.message,
+      });
+    }
 
-      res.json(result);
-  })
+    res.json({
+      success: true,
+      menu: result,
+    });
+  });
+});
+
+app.post("/student/mess/:id",(req,res)=>{
+  const {reg_no}=req.params;
+  const {attendence,formdata}=req.body;
 })
 
 app.listen(PORT,()=>{
