@@ -12,6 +12,25 @@ const StudentMess = () => {
     comment: "",
     rating:""
   })
+  //Fetcing from backend///////////////////////
+  const[attenDance,setAttenDance]=useState({
+    breakfast: 0,
+    lunch: 0,
+    dinner: 0
+  });
+  const[totalAttendance,setTotalAttendance]=useState({
+    breakfast: 0,
+    lunch: 0,
+    dinner: 0
+  });
+  const[myRating,setMyRating]=useState(0);
+  const[todayAverageRating,setTodayAverageRating]=useState(0);
+  const[ weeklyAverageRating,setWeeklyAverageRating]=useState(0);
+  const[myTodayFeedback,setMyTodayFeedback]=useState("")
+  const[myWeekFeedback,setMyWeekFeedback]=useState([]);
+  const[todayFeedback,setTodayFeedback]=useState([]);
+  const[weekFeedback,setWeekFeedback]=useState([])
+
 
 useEffect(() => {
   const fetchMenu = async () => {
@@ -21,7 +40,26 @@ useEffect(() => {
       );
 
       if (res.data.success) {
-        setMenu(res.data.menu);
+        setMenu(res.data.menu); 
+
+setAttenDance(res.data.attendance || {
+  breakfast: 0,
+  lunch: 0,
+  dinner: 0,
+});
+
+setMyRating(res.data.myRating?.rating || 0);
+setTodayAverageRating(res.data.todayAverageRating?.avg_rating || 0);
+setWeeklyAverageRating(res.data.weeklyAverageRating?.avg_rating || 0);
+setMyTodayFeedback(res.data.myTodayFeedback?.message || "");
+setMyWeekFeedback(res.data.myWeekFeedback || []);
+setTodayFeedback(res.data.todayFeedback || []);
+setWeekFeedback(res.data.weekFeedback || []);
+setTotalAttendance(res.data.totalAttendance || {
+  breakfast: 0,
+  lunch: 0,
+  dinner:0
+})
       }
     } catch (error) {
       console.log(error);
@@ -29,7 +67,7 @@ useEffect(() => {
   };
 
   fetchMenu();
-}, [id]);
+}, [id,flag]);
 
   const today = new Date().toLocaleDateString("en-US", {
     weekday: "long",
@@ -173,13 +211,13 @@ const handleSubmit = (e) => {
       <div className="space-y-4">
         <div>
           <h3 className="text-lg font-semibold">My Ratings</h3>
-          <p className="text-gray-300">⭐⭐⭐⭐☆ (4/5)</p>
+          <p className="text-gray-300">{myRating}</p>
         </div>
 
         <div>
           <h3 className="text-lg font-semibold">My Comments</h3>
           <p className="text-gray-300 bg-gray-800 p-3 rounded-lg">
-            The food quality was good today. The dinner was especially delicious.
+            {myTodayFeedback}
           </p>
         </div>
       </div>
@@ -226,26 +264,45 @@ const handleSubmit = (e) => {
     {/* Weekly Average Rating */}
     <div className="bg-gray-900 rounded-xl shadow-lg p-6">
       <h2 className="text-2xl font-bold text-yellow-400 mb-4">
-        Weekly Mess Report
+        Mess Report
       </h2>
 
       <div className="grid grid-cols-2 gap-6">
 
         <div className="bg-gray-800 p-4 rounded-lg">
           <h3 className="text-lg font-semibold">
-            Date Range
+           Last Week Average Rating
           </h3>
-          <p className="text-gray-300">
-            21 Jul 2026 - 27 Jul 2026
+          <p className="text-yellow-400 text-xl font-bold">
+            ⭐ {weeklyAverageRating}
           </p>
         </div>
 
         <div className="bg-gray-800 p-4 rounded-lg">
           <h3 className="text-lg font-semibold">
-            Average Rating
+            Total attendance for:
           </h3>
           <p className="text-yellow-400 text-xl font-bold">
-            ⭐ 4.3 / 5
+            Breakfast: {totalAttendance.breakfast}
+            <br></br>
+            Lunch: {totalAttendance.lunch}
+            <br></br>
+            Dinner:{totalAttendance.dinner}
+            <br></br>
+          </p>
+        </div>
+
+        <div className="bg-gray-800 p-4 rounded-lg">
+          <h3 className="text-lg font-semibold">
+            My Attandence:
+          </h3>
+          <p className="text-yellow-400 text-xl font-bold">
+            Breakfast: {attenDance.breakfast}
+            <br></br>
+            Lunch: {attenDance.lunch}
+            <br></br>
+            Dinner:{attenDance.dinner}
+            <br></br>
           </p>
         </div>
 

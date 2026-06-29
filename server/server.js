@@ -55,11 +55,11 @@ app.post("/student/login", (req, res) => {
 
 ///////////////////////////////////////////////
 //STUDENT/MESS SECTION
-
 app.get("/student/mess/:id", (req, res) => {
-  const { id } = req.params;
+  const reg_no = req.params.id;
 
-  const sql = `
+  // 1. Menu
+  const menuSql = `
     SELECT m.*
     FROM student s
     JOIN mess_menu m
@@ -83,18 +83,170 @@ app.get("/student/mess/:id", (req, res) => {
       );
   `;
 
-  db.query(sql, [id], (err, result) => {
-    if (err) {
-      console.log(err);
-      return res.status(500).json({
-        success: false,
-        error: err.message,
-      });
-    }
+  // 2. My Attendance Today
+  const attendanceSql = `
+    SELECT breakfast, lunch, dinner
+    FROM mess_attendance
+    WHERE reg_no = ?
+    AND attendance_date = CURDATE();
+  `;
 
-    res.json({
-      success: true,
-      menu: result,
+  // 3. Today's Total Attendance
+const totalAttendanceSql = `
+SELECT
+    IFNULL(SUM(breakfast), 0) AS breakfast,
+    IFNULL(SUM(lunch), 0) AS lunch,
+    IFNULL(SUM(dinner), 0) AS dinner
+FROM mess_attendance
+WHERE attendance_date = CURDATE();
+`;
+
+  // 4. My Today's Rating
+  const myRatingSql = `
+    SELECT rating
+    FROM mess_rating
+    WHERE reg_no = ?
+    AND rating_date = CURDATE();
+  `;
+
+  // 5. Today's Average Rating
+  const todayAvgRatingSql = `
+    SELECT ROUND(AVG(rating),2) AS avg_rating
+    FROM mess_rating
+    WHERE rating_date = CURDATE();
+  `;
+
+  // 6. Last Week Average Rating
+  const weekAvgRatingSql = `
+    SELECT ROUND(AVG(rating),2) AS avg_rating
+    FROM mess_rating
+    WHERE rating_date BETWEEN DATE_SUB(CURDATE(), INTERVAL 6 DAY)
+                          AND CURDATE();
+  `;
+
+  // 7. My Today's Feedback
+  const myTodayFeedbackSql = `
+    SELECT message
+    FROM mess_feedback
+    WHERE reg_no = ?
+    AND message_date = CURDATE();
+  `;
+
+  // 8. My Last Week Feedback
+  const myWeekFeedbackSql = `
+    SELECT message, message_date
+    FROM mess_feedback
+    WHERE reg_no = ?
+    AND message_date BETWEEN DATE_SUB(CURDATE(), INTERVAL 6 DAY)
+                         AND CURDATE()
+    ORDER BY message_date DESC;
+  `;
+
+  // 9. Today's All Feedback
+  const todayFeedbackSql = `
+    SELECT
+    s.name,
+    f.message
+    FROM mess_feedback f
+    JOIN student s
+    ON f.reg_no = s.reg_no
+    WHERE f.message_date = CURDATE()
+    ORDER BY f.id DESC;
+  `;
+
+  // 10. Last Week All Feedback
+  const weekFeedbackSql = `
+SELECT
+    s.name,
+    f.message,
+    f.message_date
+FROM mess_feedback f
+JOIN student s
+ON f.reg_no = s.reg_no
+WHERE f.message_date BETWEEN DATE_SUB(CURDATE(), INTERVAL 6 DAY)
+ AND CURDATE()
+ORDER BY f.message_date DESC, f.id DESC;
+  `;
+
+  db.query(menuSql, [reg_no], (err, menu) => {
+    if (err) return res.status(500).json(err);
+
+    db.query(attendanceSql, [reg_no], (err, attendance) => {
+      if (err) return res.status(500).json(err);
+
+      db.query(totalAttendanceSql, (err, totalAttendance) => {
+        if (err) return res.status(500).json(err);
+
+        db.query(myRatingSql, [reg_no], (err, myRating) => {
+          if (err) return res.status(500).json(err);
+
+          db.query(todayAvgRatingSql, (err, todayAvg) => {
+            if (err) return res.status(500).json(err);
+
+            db.query(weekAvgRatingSql, (err, weekAvg) => {
+              if (err) return res.status(500).json(err);
+
+              db.query(myTodayFeedbackSql, [reg_no], (err, myTodayFeedback) => {
+                if (err) return res.status(500).json(err);
+
+                db.query(myWeekFeedbackSql, [reg_no], (err, myWeekFeedback) => {
+                  if (err) return res.status(500).json(err);
+
+                  db.query(todayFeedbackSql, (err, todayFeedback) => {
+                    if (err) return res.status(500).json(err);
+
+                    db.query(weekFeedbackSql, (err, weekFeedback) => {
+                      if (err) return res.status(500).json(err);
+
+                      res.json({
+                        success: true,
+
+                        menu,
+
+                        attendance:
+                          attendance.length > 0
+                            ? attendance[0]
+                            : null,
+
+                        totalAttendance:
+                          totalAttendance.length > 0
+                            ? totalAttendance[0]
+                            : null,
+
+                        myRating:
+                          myRating.length > 0
+                            ? myRating[0]
+                            : null,
+
+                        todayAverageRating:
+                          todayAvg.length > 0
+                            ? todayAvg[0]
+                            : null,
+
+                        weeklyAverageRating:
+                          weekAvg.length > 0
+                            ? weekAvg[0]
+                            : null,
+
+                        myTodayFeedback:
+                          myTodayFeedback.length > 0
+                            ? myTodayFeedback[0]
+                            : null,
+                            
+
+                        myWeekFeedback,
+
+                        todayFeedback,
+                        weekFeedback,
+                      });
+                    });
+                  });
+                });
+              });
+            });
+          });
+        });
+      });
     });
   });
 });
