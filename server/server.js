@@ -1,321 +1,77 @@
-import express from 'express'
-import mysql from 'mysql2'
-import dotenv from 'dotenv'
-import cors from 'cors'
+import express from "express";
+import cors from "cors";
+import dotenv from "dotenv";
 
-dotenv.config()
-const app=express();
-const PORT=3000
-app.use(express.json())
-app.use(cors())
+import "./config/db.js";
 
-//Connecting database
+// =========================
+// Routes
+// =========================
+import authRoutes           from "./routes/authRoutes.js";
 
-const db=mysql.createConnection({
-    host: 'localhost',
-    user: 'root',
-    password: process.env.SQLP,
-    database: 'student_media'
-})
+// Student
+import messRoutes           from "./routes/messRoutes.js";
+import complaintRoutes      from "./routes/complaintRoutes.js";
+import academicsRoutes      from "./routes/academicsRoutes.js";
 
-db.connect((err)=>{
-    if(err){
-        console.log("Database connection failed!",err);
-        return;
-    }
-    console.log("database connected successfully!")
-})
+// Admin
+import adminMessRoutes      from "./routes/adminMessRoutes.js";
+import adminComplaintRoutes from "./routes/adminComplaintRoutes.js";
+import adminAcademicsRoutes from "./routes/adminAcademicsRoutes.js";
 
-app.get("/",(req,res)=>{
-    res.send("Hello!")
-})
+// Shared
+import opinionRoutes        from "./routes/opinionRoutes.js";
 
-app.post("/student/login", (req, res) => {
-  const { reg_no, password } = req.body;
-//console.log(req.body)
-  const sql =
-    "SELECT * FROM student_login WHERE reg_no = ? AND password = ?";
+dotenv.config();
 
-  db.query(sql, [reg_no, password], (err, result) => {
-    if (err) return res.status(500).json(err);
+const app  = express();
+const PORT = process.env.PORT || 3000;
 
-    if (result.length > 0) {
-      res.json({
-        success: true,
-        student: result[0],
-      });
-    } else {
-      res.status(401).json({
-        success: false,
-        message: "Invalid Credentials",
-      });
-    }
-  });
+// =========================
+// Middlewares
+// =========================
+app.use(cors());
+app.use(express.json());
+
+// =========================
+// Home
+// =========================
+app.get("/", (req, res) => {
+  res.send("Campus Media Backend Running...");
 });
 
-///////////////////////////////////////////////
-//STUDENT/MESS SECTION
-app.get("/student/mess/:id", (req, res) => {
-  const reg_no = req.params.id;
+// =========================
+// Authentication
+// =========================
+app.use("/", authRoutes);
 
-  // 1. Menu
-  const menuSql = `
-    SELECT m.*
-    FROM student s
-    JOIN mess_menu m
-      ON s.hall_no = m.hall_no
-    WHERE s.reg_no = ?
-      AND m.week_day IN (
-        DAYNAME(CURDATE()),
-        DAYNAME(DATE_ADD(CURDATE(), INTERVAL 1 DAY))
-      )
-    ORDER BY
-      FIELD(
-        m.week_day,
-        DAYNAME(CURDATE()),
-        DAYNAME(DATE_ADD(CURDATE(), INTERVAL 1 DAY))
-      ),
-      FIELD(
-        m.meal,
-        'Breakfast',
-        'Lunch',
-        'Dinner'
-      );
-  `;
+// =========================
+// Student Routes
+// =========================
+app.use("/student/mess",      messRoutes);
+app.use("/student/complaint", complaintRoutes);
+app.use("/student/academics", academicsRoutes);
 
-  // 2. My Attendance Today
-  const attendanceSql = `
-    SELECT breakfast, lunch, dinner
-    FROM mess_attendance
-    WHERE reg_no = ?
-    AND attendance_date = CURDATE();
-  `;
+// =========================
+// Admin Routes
+// =========================
+app.use("/admin/mess",        adminMessRoutes);
+app.use("/admin/complaint",   adminComplaintRoutes);
+app.use("/admin/academics",   adminAcademicsRoutes);
 
-  // 3. Today's Total Attendance
-const totalAttendanceSql = `
-SELECT
-    IFNULL(SUM(breakfast), 0) AS breakfast,
-    IFNULL(SUM(lunch), 0) AS lunch,
-    IFNULL(SUM(dinner), 0) AS dinner
-FROM mess_attendance
-WHERE attendance_date = CURDATE();
-`;
+// =========================
+// Shared Routes
+// =========================
+app.use("/opinion", opinionRoutes); // used by both students and admins
 
-  // 4. My Today's Rating
-  const myRatingSql = `
-    SELECT rating
-    FROM mess_rating
-    WHERE reg_no = ?
-    AND rating_date = CURDATE();
-  `;
-
-  // 5. Today's Average Rating
-  const todayAvgRatingSql = `
-    SELECT ROUND(AVG(rating),2) AS avg_rating
-    FROM mess_rating
-    WHERE rating_date = CURDATE();
-  `;
-
-  // 6. Last Week Average Rating
-  const weekAvgRatingSql = `
-    SELECT ROUND(AVG(rating),2) AS avg_rating
-    FROM mess_rating
-    WHERE rating_date BETWEEN DATE_SUB(CURDATE(), INTERVAL 6 DAY)
-                          AND CURDATE();
-  `;
-
-  // 7. My Today's Feedback
-  const myTodayFeedbackSql = `
-    SELECT message
-    FROM mess_feedback
-    WHERE reg_no = ?
-    AND message_date = CURDATE();
-  `;
-
-  // 8. My Last Week Feedback
-  const myWeekFeedbackSql = `
-    SELECT message, message_date
-    FROM mess_feedback
-    WHERE reg_no = ?
-    AND message_date BETWEEN DATE_SUB(CURDATE(), INTERVAL 6 DAY)
-                         AND CURDATE()
-    ORDER BY message_date DESC;
-  `;
-
-  // 9. Today's All Feedback
-  const todayFeedbackSql = `
-    SELECT
-    s.name,
-    f.message
-    FROM mess_feedback f
-    JOIN student s
-    ON f.reg_no = s.reg_no
-    WHERE f.message_date = CURDATE()
-    ORDER BY f.id DESC;
-  `;
-
-  // 10. Last Week All Feedback
-  const weekFeedbackSql = `
-SELECT
-    s.name,
-    f.message,
-    f.message_date
-FROM mess_feedback f
-JOIN student s
-ON f.reg_no = s.reg_no
-WHERE f.message_date BETWEEN DATE_SUB(CURDATE(), INTERVAL 6 DAY)
- AND CURDATE()
-ORDER BY f.message_date DESC, f.id DESC;
-  `;
-
-  db.query(menuSql, [reg_no], (err, menu) => {
-    if (err) return res.status(500).json(err);
-
-    db.query(attendanceSql, [reg_no], (err, attendance) => {
-      if (err) return res.status(500).json(err);
-
-      db.query(totalAttendanceSql, (err, totalAttendance) => {
-        if (err) return res.status(500).json(err);
-
-        db.query(myRatingSql, [reg_no], (err, myRating) => {
-          if (err) return res.status(500).json(err);
-
-          db.query(todayAvgRatingSql, (err, todayAvg) => {
-            if (err) return res.status(500).json(err);
-
-            db.query(weekAvgRatingSql, (err, weekAvg) => {
-              if (err) return res.status(500).json(err);
-
-              db.query(myTodayFeedbackSql, [reg_no], (err, myTodayFeedback) => {
-                if (err) return res.status(500).json(err);
-
-                db.query(myWeekFeedbackSql, [reg_no], (err, myWeekFeedback) => {
-                  if (err) return res.status(500).json(err);
-
-                  db.query(todayFeedbackSql, (err, todayFeedback) => {
-                    if (err) return res.status(500).json(err);
-
-                    db.query(weekFeedbackSql, (err, weekFeedback) => {
-                      if (err) return res.status(500).json(err);
-
-                      res.json({
-                        success: true,
-
-                        menu,
-
-                        attendance:
-                          attendance.length > 0
-                            ? attendance[0]
-                            : null,
-
-                        totalAttendance:
-                          totalAttendance.length > 0
-                            ? totalAttendance[0]
-                            : null,
-
-                        myRating:
-                          myRating.length > 0
-                            ? myRating[0]
-                            : null,
-
-                        todayAverageRating:
-                          todayAvg.length > 0
-                            ? todayAvg[0]
-                            : null,
-
-                        weeklyAverageRating:
-                          weekAvg.length > 0
-                            ? weekAvg[0]
-                            : null,
-
-                        myTodayFeedback:
-                          myTodayFeedback.length > 0
-                            ? myTodayFeedback[0]
-                            : null,
-                            
-
-                        myWeekFeedback,
-
-                        todayFeedback,
-                        weekFeedback,
-                      });
-                    });
-                  });
-                });
-              });
-            });
-          });
-        });
-      });
-    });
-  });
+// =========================
+// 404
+// =========================
+app.use((req, res) => {
+  res.status(404).json({ success: false, message: "Route Not Found" });
 });
 
-app.post("/student/mess/:id", (req, res) => {
-  const reg_no = req.params.id;
-  const { attendence, formData } = req.body;
-
-  // Attendance
-  if (attendence) {
-    const meal = attendence[0];   // Breakfast/Lunch/Dinner
-    const status = attendence[1]; // 0 or 1
-
-    let column = "";
-
-    if (meal === "Breakfast") column = "breakfast";
-    else if (meal === "Lunch") column = "lunch";
-    else column = "dinner";
-
-    const attendanceSql = `
-        INSERT INTO mess_attendance
-        (reg_no, attendance_date, ${column})
-        VALUES (?, CURDATE(), ?)
-        ON DUPLICATE KEY UPDATE
-        ${column} = VALUES(${column});
-    `;
-
-    db.query(attendanceSql, [reg_no, status], (err) => {
-        if (err) console.log(err);
-    });
-}
-  // Rating
- if (formData.rating) {
-
-    const ratingSql = `
-        INSERT INTO mess_rating
-        (reg_no, rating_date, rating)
-        VALUES (?, CURDATE(), ?)
-        ON DUPLICATE KEY UPDATE
-        rating = VALUES(rating);
-    `;
-
-    db.query(ratingSql, [reg_no, formData.rating], (err) => {
-        if (err) console.log(err);
-    });
-}
-
-  // Feedback
-  if (formData.comment && formData.comment.trim() !== "") {
-
-    const feedbackSql = `
-        INSERT INTO mess_feedback
-        (reg_no, message, message_date)
-        VALUES (?, ?, CURDATE())
-        ON DUPLICATE KEY UPDATE
-        message = VALUES(message);
-    `;
-
-    db.query(feedbackSql, [reg_no, formData.comment], (err) => {
-        if (err) console.log(err);
-    });
-}
-
-  res.json({
-    success: true,
-    message: "Data saved successfully."
-  });
-});
-
-app.listen(PORT,()=>{
-    console.log(`app is running on ${PORT}`)
-})
+// =========================
+// Start Server
+// =========================
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

@@ -1,358 +1,96 @@
-import React, { useEffect, useState } from "react";
-import axios from "axios";
-import { useParams } from "react-router-dom";
+import React, { useState } from 'react';
+import { useParams } from 'react-router-dom';
+
+import { useMessData } from '../../hooks/useMessData';
+import MenuSection from '../../components/mess/MenuSection';
+import FeedbackForm from '../../components/mess/FeedbackForm';
+import MessReport from '../../components/mess/MessReport';
+import MessNoticeList from '../../components/mess/MessNoticeList';
+
+const dayName = (offsetDays = 0) =>
+  new Date(Date.now() + offsetDays * 86_400_000).toLocaleDateString('en-US', { weekday: 'long' });
 
 const StudentMess = () => {
   const { id } = useParams();
+  const [tab, setTab] = useState('today');
 
-  const [menu, setMenu] = useState([]);
-  const[attendence,setAttendence]=useState([]);
-  const[flag,setFlag]=useState(true);
-  const[formData,setFormData]=useState({
-    comment: "",
-    rating:""
-  })
-  //Fetcing from backend///////////////////////
-  const[attenDance,setAttenDance]=useState({
-    breakfast: 0,
-    lunch: 0,
-    dinner: 0
-  });
-  const[totalAttendance,setTotalAttendance]=useState({
-    breakfast: 0,
-    lunch: 0,
-    dinner: 0
-  });
-  const[myRating,setMyRating]=useState(0);
-  const[todayAverageRating,setTodayAverageRating]=useState(0);
-  const[ weeklyAverageRating,setWeeklyAverageRating]=useState(0);
-  const[myTodayFeedback,setMyTodayFeedback]=useState("")
-  const[myWeekFeedback,setMyWeekFeedback]=useState([]);
-  const[todayFeedback,setTodayFeedback]=useState([]);
-  const[weekFeedback,setWeekFeedback]=useState([])
+  const {
+    loading,
+    hallNo,
+    menu,
+    attendance,
+    totalAttendance,
+    myRating,
+    todayAverageRating,
+    weeklyAverageRating,
+    myTodayFeedback,
+    todayFeedback,
+    notices,
+    submitFeedback,
+    submitAttendance,
+  } = useMessData(id);
 
+  const today    = dayName(0);
+  const tomorrow = dayName(1);
 
-useEffect(() => {
-  const fetchMenu = async () => {
-    try {
-      const res = await axios.get(
-        `http://localhost:3000/student/mess/${id}`
-      );
+  const todayMenu    = menu.filter((m) => m.week_day === today);
+  const tomorrowMenu = menu.filter((m) => m.week_day === tomorrow);
 
-      if (res.data.success) {
-        setMenu(res.data.menu); 
+  const TABS = [
+    { key: 'today',    label: "Today's Menu"    },
+    { key: 'tomorrow', label: "Tomorrow's Menu"  },
+    { key: 'feedback', label: 'Feedback'         },
+    { key: 'report',   label: 'Mess Report'      },
+    { key: 'notices',  label: 'Notices'          },
+  ];
 
-setAttenDance(res.data.attendance || {
-  breakfast: 0,
-  lunch: 0,
-  dinner: 0,
-});
-
-setMyRating(res.data.myRating?.rating || 0);
-setTodayAverageRating(res.data.todayAverageRating?.avg_rating || 0);
-setWeeklyAverageRating(res.data.weeklyAverageRating?.avg_rating || 0);
-setMyTodayFeedback(res.data.myTodayFeedback?.message || "");
-setMyWeekFeedback(res.data.myWeekFeedback || []);
-setTodayFeedback(res.data.todayFeedback || []);
-setWeekFeedback(res.data.weekFeedback || []);
-setTotalAttendance(res.data.totalAttendance || {
-  breakfast: 0,
-  lunch: 0,
-  dinner:0
-})
-      }
-    } catch (error) {
-      console.log(error);
-    }
-  };
-
-  fetchMenu();
-}, [id,flag]);
-
-  const today = new Date().toLocaleDateString("en-US", {
-    weekday: "long",
-  });
-
-  const tomorrow = new Date(
-    Date.now() + 24 * 60 * 60 * 1000
-  ).toLocaleDateString("en-US", {
-    weekday: "long",
-  });
-
-  const todayMenu = menu.filter(
-    (item) => item.week_day === today
-  );
-
-  const tomorrowMenu = menu.filter(
-    (item) => item.week_day === tomorrow
-  );
-
-  //Function for not attendence and feedback
-useEffect(()=>{
-   const attendenceAndFeedback=async ()=>{
-      try {
-    const response = await axios.post(
-      `http://localhost:3000/student/mess/${id}`,
-      {
-        attendence: attendence,
-        formData: formData
-
-      }
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-slate-100 flex items-center justify-center text-slate-400 text-base">
+        Loading…
+      </div>
     );
-    console.log(response.data);
-  } catch (error) {
-    console.error(error);
-  } finally {
-    console.log("Request completed");
   }
-   }
-
-   attendenceAndFeedback();
-},[flag])
-
-const handleChange= (e)=>{
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    });
-}
-
-const handleSubmit = (e) => {
-    e.preventDefault();
-    setFlag(!flag);
-};
-
 
   return (
-  <div className="p-6 bg-black text-white min-h-screen">
-    {/* Today's Menu */}
-    <h1 className="text-3xl font-bold mb-6 text-center">
-      Today's Menu ({today})
-    </h1>
+    <div className="min-h-screen bg-slate-100 font-sans text-slate-800 pb-16">
 
-    {todayMenu.map((meal) => (
-      <div
-        key={meal.id}
-        className="border rounded-lg p-4 mb-4 shadow"
-      >
-        <h2 className="text-xl font-semibold mb-2 text-green-400">
-          {meal.meal}
-        </h2>
-
-        <ul className="list-disc pl-5">
-          <li>{meal.item1}</li>
-          <li>{meal.item2}</li>
-          <li>{meal.item3}</li>
-          <li>{meal.item4}</li>
-          <li>{meal.item5}</li>
-        </ul>
+      {/* Header */}
+      <div className="bg-gradient-to-br from-[#1e3a5f] to-blue-600 text-white px-8 py-7">
+        <h1 className="text-xl font-bold tracking-tight m-0">Mess Portal</h1>
+        <p className="text-sm opacity-75 mt-1">
+          {today}
+          {hallNo !== null && hallNo !== undefined && <> · Hall {hallNo}</>}
+        </p>
       </div>
-    ))}
 
-    <div className="min-h-screen bg-black flex justify-center items-center p-6">
-  <form onSubmit={handleSubmit} className="bg-gray-900 text-white w-full max-w-lg p-8 rounded-xl shadow-lg">
-
-    <h1 className="text-3xl font-bold text-center mb-8">
-      Mess Feedback
-    </h1>
-
-    {/* Rating */}
-    <div className="mb-6">
-      <label className="block mb-2 text-lg font-medium">
-        Rate Today's Food
-      </label>
-
-      <select onChange={handleChange}
-        name="rating"
-        className="w-full p-3 rounded-lg bg-gray-800 border border-gray-600 focus:outline-none"
-      >
-        <option value="">Select Rating</option>
-        <option value="1">⭐ 1 - Poor</option>
-        <option value="2">⭐⭐ 2 - Fair</option>
-        <option value="3">⭐⭐⭐ 3 - Good</option>
-        <option value="4">⭐⭐⭐⭐ 4 - Very Good</option>
-        <option value="5">⭐⭐⭐⭐⭐ 5 - Excellent</option>
-      </select>
-    </div>
-
-    {/* Comment */}
-    <div className="mb-6">
-      <label className="block mb-2 text-lg font-medium">
-        Comment
-      </label>
-
-      <textarea onChange={handleChange}
-        name="comment"
-        rows="5"
-        placeholder="Write your feedback..."
-        className="w-full p-3 rounded-lg bg-gray-800 border border-gray-600 focus:outline-none resize-none"
-      ></textarea>
-    </div>
-
-    <button
-      type="submit"
-      className="w-full bg-green-600 hover:bg-green-700 py-3 rounded-lg text-lg font-semibold"
-    >
-      Submit Feedback
-    </button>
-
-  </form>
-</div>
-
-<div className="min-h-screen bg-black text-white p-8">
-  <div className="max-w-5xl mx-auto space-y-8">
-
-    {/* Your Feedback */}
-    <div className="bg-gray-900 rounded-xl shadow-lg p-6">
-      <h2 className="text-2xl font-bold mb-4 text-green-400">
-        My Feedback
-      </h2>
-
-      <div className="space-y-4">
-        <div>
-          <h3 className="text-lg font-semibold">My Ratings</h3>
-          <p className="text-gray-300">{myRating}</p>
-        </div>
-
-        <div>
-          <h3 className="text-lg font-semibold">My Comments</h3>
-          <p className="text-gray-300 bg-gray-800 p-3 rounded-lg">
-            {myTodayFeedback}
-          </p>
-        </div>
+      {/* Tabs */}
+      <div className="flex bg-white border-b border-slate-200 px-8 overflow-x-auto">
+        {TABS.map((t) => (
+          <button
+            key={t.key}
+            onClick={() => setTab(t.key)}
+            className={`px-5 py-3.5 text-sm font-semibold border-b-2 whitespace-nowrap transition-colors cursor-pointer bg-transparent
+              ${tab === t.key
+                ? 'border-blue-600 text-blue-600'
+                : 'border-transparent text-slate-400 hover:text-slate-600'}`}
+          >
+            {t.label}
+          </button>
+        ))}
       </div>
-    </div>
 
-    {/* Community Comments */}
-    <div className="bg-gray-900 rounded-xl shadow-lg p-6">
-      <h2 className="text-2xl font-bold mb-4 text-blue-400">
-        Student Comments
-      </h2>
-
-      <div className="space-y-4">
-
-        <div className="bg-gray-800 p-4 rounded-lg">
-          <p className="text-gray-200">
-            The breakfast was really good today.
-          </p>
-          <div className="mt-2 text-sm text-gray-400">
-            👍 12 &nbsp;&nbsp; 👎 1
-          </div>
-        </div>
-
-        <div className="bg-gray-800 p-4 rounded-lg">
-          <p className="text-gray-200">
-            Rice was overcooked during lunch.
-          </p>
-          <div className="mt-2 text-sm text-gray-400">
-            👍 8 &nbsp;&nbsp; 👎 0
-          </div>
-        </div>
-
-        <div className="bg-gray-800 p-4 rounded-lg">
-          <p className="text-gray-200">
-            Please include more fruits in breakfast.
-          </p>
-          <div className="mt-2 text-sm text-gray-400">
-            👍 15 &nbsp;&nbsp; 👎 2
-          </div>
-        </div>
-
+      {/* Body */}
+      <div className="max-w-3xl mx-auto px-6 pt-7">
+        {tab === 'today'    && <MenuSection title={`Menu for ${today}`}    meals={todayMenu}    />}
+        {tab === 'tomorrow' && <MenuSection title={`Menu for ${tomorrow}`} meals={tomorrowMenu} showAttendance onAttendance={submitAttendance} />}
+        {tab === 'feedback' && <FeedbackForm onSubmit={submitFeedback} currentRating={myRating} currentComment={myTodayFeedback} todayFeedback={todayFeedback} />}
+        {tab === 'report'   && <MessReport myRating={myRating} myTodayFeedback={myTodayFeedback} todayAverageRating={todayAverageRating} weeklyAverageRating={weeklyAverageRating} totalAttendance={totalAttendance} attendance={attendance} />}
+        {tab === 'notices'  && <MessNoticeList notices={notices} />}
       </div>
+
     </div>
-
-    {/* Weekly Average Rating */}
-    <div className="bg-gray-900 rounded-xl shadow-lg p-6">
-      <h2 className="text-2xl font-bold text-yellow-400 mb-4">
-        Mess Report
-      </h2>
-
-      <div className="grid grid-cols-2 gap-6">
-
-        <div className="bg-gray-800 p-4 rounded-lg">
-          <h3 className="text-lg font-semibold">
-           Last Week Average Rating
-          </h3>
-          <p className="text-yellow-400 text-xl font-bold">
-            ⭐ {weeklyAverageRating}
-          </p>
-        </div>
-
-        <div className="bg-gray-800 p-4 rounded-lg">
-          <h3 className="text-lg font-semibold">
-            Total attendance for:
-          </h3>
-          <p className="text-yellow-400 text-xl font-bold">
-            Breakfast: {totalAttendance.breakfast}
-            <br></br>
-            Lunch: {totalAttendance.lunch}
-            <br></br>
-            Dinner:{totalAttendance.dinner}
-            <br></br>
-          </p>
-        </div>
-
-        <div className="bg-gray-800 p-4 rounded-lg">
-          <h3 className="text-lg font-semibold">
-            My Attandence:
-          </h3>
-          <p className="text-yellow-400 text-xl font-bold">
-            Breakfast: {attenDance.breakfast}
-            <br></br>
-            Lunch: {attenDance.lunch}
-            <br></br>
-            Dinner:{attenDance.dinner}
-            <br></br>
-          </p>
-        </div>
-
-      </div>
-    </div>
-
-  </div>
-</div>
-
-    {/* Tomorrow's Menu */}
-    <h1 className="text-3xl font-bold mt-10 mb-6 text-center">
-      Tomorrow's Menu ({tomorrow})
-    </h1>
-
-    {tomorrowMenu.map((meal) => (
-      <div
-        key={meal.id}
-        className="border rounded-lg p-4 mb-4 shadow"
-      >
-        <h2 className="text-xl font-semibold mb-2 text-blue-400">
-          {meal.meal}
-        </h2>
-
-        <ul className="list-disc pl-5">
-          <li>{meal.item1}</li>
-          <li>{meal.item2}</li>
-          <li>{meal.item3}</li>
-          <li>{meal.item4}</li>
-          <li>{meal.item5}</li>
-        </ul>
-        <div className="flex justify-center">
-        <h1 className="bg-purple-700 text-white font-bold py-2 px-4 m-5">Attendence</h1>
-
-        <button onClick={()=>{
-            setFlag(!flag);
-            setAttendence([meal.meal,1]);
-        }} className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-full m-5">
-          Yes
-        </button>
-        <button onClick={()=>{
-          setFlag(!flag)
-          setAttendence([meal.meal,0])
-        }} className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-full m-5">
-          No
-        </button>
-        </div>
-      </div>
-    ))}
-  </div>
-);
+  );
 };
 
 export default StudentMess;
