@@ -26,6 +26,15 @@ db.connect((err) => {
     return;
   }
   console.log('Database connected successfully!');
+
+  // Force the cloud database session to evaluate CURDATE() and NOW() in IST
+  db.query("SET time_zone = '+05:30';", (tzErr) => {
+    if (tzErr) {
+      console.error('Failed to set timezone on database:', tzErr);
+    } else {
+      console.log('Database session timezone successfully forced to IST (+05:30)');
+    }
+  });
 });
 
 export const query = promisify(db.query).bind(db);
