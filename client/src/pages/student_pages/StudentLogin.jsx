@@ -18,7 +18,7 @@ const StudentLogin = () => {
     setError('');
     setLoading(true);
     try {
-      const res = await axios.post('http://localhost:3000/student/login', formData);
+      const res = await axios.post('https://smart-campus-management-system-oj0v.onrender.com/admin/login', formData);
       if (res.data.success) {
         navigate(`/student/home/${formData.reg_no}`);
       }

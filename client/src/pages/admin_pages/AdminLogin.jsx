@@ -18,7 +18,7 @@ const AdminLogin = () => {
     setError('');
     setLoading(true);
     try {
-      const res = await axios.post('http://localhost:3000/admin/login', formData);
+      const res = await axios.post('https://smart-campus-management-system-oj0v.onrender.com/student/login', formData);
       if (res.data.success) {
         localStorage.setItem('admin', JSON.stringify(res.data.admin));
         navigate(`/admin/${res.data.admin.admin_id}`);
