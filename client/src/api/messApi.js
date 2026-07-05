@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const BASE = 'http://localhost:3000';
+const BASE = 'https://smart-campus-management-system-oj0v.onrender.com';
 
 export const fetchMessData = (id) =>
   axios.get(`${BASE}/student/mess/${id}`);

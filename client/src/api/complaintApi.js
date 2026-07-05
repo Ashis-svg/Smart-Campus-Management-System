@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API = 'http://localhost:3000';
+const API = 'https://smart-campus-management-system-oj0v.onrender.com';
 
 export const getComplaints = (id) =>
   axios.get(`${API}/student/complaint/${id}`);
