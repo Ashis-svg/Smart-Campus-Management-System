@@ -14,7 +14,10 @@ const db = mysql.createConnection({
   // 2. Cloud databases require SSL to connect securely
   ssl: {
     rejectUnauthorized: false
-  }
+  },
+
+  timezone: '+05:30',
+  dateStrings: true
 });
 
 db.connect((err) => {
