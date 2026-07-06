@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { registerAdmin } from '../../api/registerApi';
+import { registerAdmin } from "../api/registerApi";
 
 const inputCls = "w-full border border-slate-200 rounded-lg px-3.5 py-2.5 text-sm bg-slate-50 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition";
 const labelCls = "text-xs font-semibold text-slate-500 mb-1 block";
