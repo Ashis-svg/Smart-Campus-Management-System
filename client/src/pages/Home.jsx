@@ -31,7 +31,7 @@ const Home = () => {
 
       {/* Header */}
       <div className="bg-gradient-to-r from-[#1e3a5f] to-blue-600 text-white px-8 py-5 text-center">
-        <h1 className="text-2xl font-bold tracking-tight">Campus Media</h1>
+        <h1 className="text-2xl font-bold tracking-tight">Campus Connect</h1>
         <p className="text-sm opacity-70 mt-1">Smart Campus Management System</p>
       </div>
 
