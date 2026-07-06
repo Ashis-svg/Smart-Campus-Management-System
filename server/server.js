@@ -8,6 +8,7 @@ import "./config/db.js";
 // Routes
 // =========================
 import authRoutes           from "./routes/authRoutes.js";
+import registerRoutes       from "./routes/registerRoutes.js";
 
 // Student
 import messRoutes           from "./routes/messRoutes.js";
@@ -44,6 +45,7 @@ app.get("/", (req, res) => {
 // Authentication
 // =========================
 app.use("/", authRoutes);
+app.use("/", registerRoutes); // exposes /student/register and /admin/register
 
 // =========================
 // Student Routes
