@@ -4,33 +4,35 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-// Create a Pool instead of a single Connection
-const db = mysql.createPool({
+const db = mysql.createConnection({
   host: process.env.DB_HOST || 'localhost',
   user: process.env.DB_USER || 'root',
   password: process.env.SQLP,
   database: process.env.DB_NAME || 'student_media',
+  // 1. We must explicitly tell it to use the custom Aiven port
   port: process.env.DB_PORT || 3306,
+  // 2. Cloud databases require SSL to connect securely
   ssl: {
     rejectUnauthorized: false
   },
+
   timezone: '+05:30',
-  dateStrings: true,
-  
-  // Pool specific settings
-  waitForConnections: true,
-  connectionLimit: 10,
-  queueLimit: 0
+  dateStrings: true
 });
 
-// This ensures every time the pool creates a new connection, 
-// it forces the Indian timezone automatically!
-db.on('connection', (connection) => {
-  connection.query("SET time_zone = '+05:30';", (err) => {
-    if (err) {
-      console.error('Failed to set timezone on new connection:', err);
+db.connect((err) => {
+  if (err) {
+    console.error('Database connection failed!', err);
+    return;
+  }
+  console.log('Database connected successfully!');
+
+  // Force the cloud database session to evaluate CURDATE() and NOW() in IST
+  db.query("SET time_zone = '+05:30';", (tzErr) => {
+    if (tzErr) {
+      console.error('Failed to set timezone on database:', tzErr);
     } else {
-      console.log('New database connection established and timezone set to IST (+05:30)');
+      console.log('Database session timezone successfully forced to IST (+05:30)');
     }
   });
 });
